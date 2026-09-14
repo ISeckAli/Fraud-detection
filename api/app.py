@@ -6,6 +6,7 @@
 # returns a fraud probability and decision.
 
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import joblib
@@ -14,6 +15,12 @@ import os
 
 # Create the Flask application instance.
 app = Flask(__name__)
+
+# Enable CORS (Cross-Origin Resource Sharing), so a webpage loaded
+# from a different origin (e.g. a local HTML file, or later, the
+# deployed demo site) is allowed to call this API. Without this,
+# browsers block the request as a security precaution by default.
+CORS(app)
 
 # Set up rate limiting, to protect the public demo endpoint from being
 # overwhelmed (e.g. by accidental loops or abuse) once it's deployed.

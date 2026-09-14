@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fraud Detection Demo</title>
+    <style>
+        /* Design direction: a security/ledger aesthetic, not a generic
+           soft SaaS form. Dark navy background, monospace for numbers
+           and data fields (like a bank statement), amber for flagged
+           fraud, muted green for cleared transactions. */
+
+        :root {
+            --bg: #0F1620;
+            --surface: #182430;
+            --border: #2A3A48;
+            --text-primary: #E8ECEF;
+            --text-secondary: #8FA0B0;
+            --accent-alert: #E2A93A;
+            --accent-safe: #4C9F70;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-primary);
+            font-family: "IBM Plex Sans", Arial, sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 640px;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 15px;
+            margin-bottom: 32px;
+        }
+
+        .panel {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 24px;
+        }
+
+        .section-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .case-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .case-card {
+            background-color: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 14px;
+            cursor: pointer;
+            font-family: "Courier New", monospace;
+        }
+
+        .case-card:hover {
+            border-color: var(--text-secondary);
+        }
+
+        .case-card.selected {
+            border-color: var(--accent-alert);
+        }
+
+        .case-title {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .case-amount {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        button.check-btn {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--accent-alert);
+            color: var(--bg);
+            border: none;
+            border-radius: 4px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button.check-btn:disabled {
+            background-color: var(--border);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+        }
+
+        .result-panel {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: var(--bg);
+            border-left: 4px solid var(--text-secondary);
+            border-radius: 4px;
+            display: none;
+            font-family: "Courier New", monospace;
+        }
+
+        .result-panel.fraud {
+            border-left-color: var(--accent-alert);
+        }
+
+        .result-panel.safe {
+            border-left-color: var(--accent-safe);
+        }
+
+        .result-headline {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .result-detail {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Transaction Fraud Check</h1>
+        <p class="subtitle">Pick a sample transaction to see a live fraud prediction from the trained model.</p>
+
+        <div class="panel">
+            <p class="section-label">Select a sample transaction</p>
+            <div class="case-grid" id="caseGrid">
+                <div class="case-card" data-case="0">
+                    <div class="case-title">Case 001</div>
+                    <div class="case-amount">$150.00</div>
+                </div>
+                <div class="case-card" data-case="1">
+                    <div class="case-title">Case 002</div>
+                    <div class="case-amount">$2,500.00</div>
+                </div>
+                <div class="case-card" data-case="2">
+                    <div class="case-title">Case 003</div>
+                    <div class="case-amount">$89.99</div>
+                </div>
+            </div>
+
+            <button class="check-btn" id="checkBtn" disabled>Select a transaction first</button>
+
+            <div class="result-panel" id="resultPanel"></div>
+        </div>
+    </div>
+
+    <script>
+        // Three realistic sample transactions, matching the exact
+        // fields our API's REQUIRED_FIELDS list expects. Case 0 is a
+        // clean transaction, Case 1 is loaded with red flags, Case 2
+        // is a small, everyday purchase - a spread of real scenarios.
+        const sampleTransactions = [
+            {
+                amount_usd: 150.0, merchant_category: "Electronics", card_type: "Visa",
+                auth_method: "PIN", channel: "Online", device_type: "iPhone",
+                is_foreign_transaction: false, hours_since_last_txn: 5.0,
+                txn_count_last_24h: 2, distance_from_home_km: 10.0,
+                card_age_months: 24, customer_age: 35, account_balance_usd: 5000.0,
+                is_new_merchant: false, used_vpn: false, ip_country_mismatch: false,
+                billing_shipping_mismatch: false, cvv_retry_count: 0,
+                velocity_score: 15.0, time_of_day_hour: 14, day_of_week: 3,
+                is_ai_generated_scam_attempt: false, merchant_risk_score: 20.0,
+                prior_disputes: 0
+            },
+            {
+                amount_usd: 2500.0, merchant_category: "Electronics", card_type: "Visa",
+                auth_method: "No Authentication", channel: "Online", device_type: "Windows PC",
+                is_foreign_transaction: true, hours_since_last_txn: 0.1,
+                txn_count_last_24h: 15, distance_from_home_km: 500.0,
+                card_age_months: 2, customer_age: 35, account_balance_usd: 200.0,
+                is_new_merchant: true, used_vpn: true, ip_country_mismatch: true,
+                billing_shipping_mismatch: true, cvv_retry_count: 3,
+                velocity_score: 65.0, time_of_day_hour: 3, day_of_week: 3,
+                is_ai_generated_scam_attempt: true, merchant_risk_score: 90.0,
+                prior_disputes: 2
+            },
+            {
+                amount_usd: 89.99, merchant_category: "Groceries", card_type: "Mastercard",
+                auth_method: "PIN", channel: "POS", device_type: "POS Terminal",
+                is_foreign_transaction: false, hours_since_last_txn: 20.0,
+                txn_count_last_24h: 1, distance_from_home_km: 3.0,
+                card_age_months: 48, customer_age: 42, account_balance_usd: 8000.0,
+                is_new_merchant: false, used_vpn: false, ip_country_mismatch: false,
+                billing_shipping_mismatch: false, cvv_retry_count: 0,
+                velocity_score: 8.0, time_of_day_hour: 18, day_of_week: 5,
+                is_ai_generated_scam_attempt: false, merchant_risk_score: 12.0,
+                prior_disputes: 0
+            }
+        ];
+
+        let selectedCase = null;
+
+        const caseCards = document.querySelectorAll(".case-card");
+        const checkBtn = document.getElementById("checkBtn");
+        const resultPanel = document.getElementById("resultPanel");
+
+        // Clicking a card selects it (highlighted border) and enables
+        // the check button - the button stays disabled until a case
+        // is chosen, guiding the user through the flow in order.
+        caseCards.forEach(card => {
+            card.addEventListener("click", () => {
+                caseCards.forEach(c => c.classList.remove("selected"));
+                card.classList.add("selected");
+                selectedCase = parseInt(card.dataset.case);
+                checkBtn.disabled = false;
+                checkBtn.textContent = "Check Transaction";
+                resultPanel.style.display = "none";
+            });
+        });
+
+        // When the button is clicked, send the selected sample
+        // transaction to the live API and display the result.
+        checkBtn.addEventListener("click", async () => {
+            if (selectedCase === null) return;
+
+            checkBtn.disabled = true;
+            checkBtn.textContent = "Checking...";
+
+            try {
+                const response = await fetch("http://127.0.0.1:5000/predict", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(sampleTransactions[selectedCase])
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || "Request failed");
+                }
+
+                const percent = (data.fraud_probability * 100).toFixed(1);
+                resultPanel.className = "result-panel " + (data.is_fraud ? "fraud" : "safe");
+                resultPanel.innerHTML = `
+                    <div class="result-headline">${data.is_fraud ? "Flagged as Fraud" : "Cleared - Not Fraud"}</div>
+                    <div class="result-detail">Fraud probability: ${percent}%<br>Decision threshold: ${data.threshold_used}</div>
+                `;
+                resultPanel.style.display = "block";
+
+            } catch (error) {
+                resultPanel.className = "result-panel fraud";
+                resultPanel.innerHTML = `
+                    <div class="result-headline">Error</div>
+                    <div class="result-detail">${error.message}. Is the API server running?</div>
+                `;
+                resultPanel.style.display = "block";
+            }
+
+            checkBtn.disabled = false;
+            checkBtn.textContent = "Check Transaction";
+        });
+    </script>
+</body>
+</html>
