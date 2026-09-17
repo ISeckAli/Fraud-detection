@@ -28,6 +28,7 @@ flask-cors==6.0.5
 Flask-Limiter==4.1.1
 fonttools==4.65.0
 fqdn==1.5.1
+gunicorn==26.2.0
 h11==0.16.0
 httpcore==1.0.9
 httpx==0.28.1
@@ -95,6 +96,7 @@ pyparsing==3.3.2
 pytest==9.1.1
 python-dateutil==2.9.0.post0
 python-json-logger==4.2.0
+pywinpty==3.0.5
 PyYAML==6.0.3
 pyzmq==27.2.0
 referencing==0.37.0
