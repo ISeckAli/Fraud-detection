@@ -5,11 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fraud Detection Demo</title>
     <style>
-        /* Design direction: a security/ledger aesthetic, not a generic
-           soft SaaS form. Dark navy background, monospace for numbers
-           and data fields (like a bank statement), amber for flagged
-           fraud, muted green for cleared transactions. */
-
         :root {
             --bg: #0F1620;
             --surface: #182430;
@@ -176,10 +171,13 @@
     </div>
 
     <script>
-        // Three realistic sample transactions, matching the exact
-        // fields our API's REQUIRED_FIELDS list expects. Case 0 is a
-        // clean transaction, Case 1 is loaded with red flags, Case 2
-        // is a small, everyday purchase - a spread of real scenarios.
+        // Live, deployed API URL (Render). Note: free-tier instances
+        // spin down after inactivity, so the first request after a
+        // period of no traffic can take up to ~50 seconds to respond
+        // while the server wakes up - this is expected free-tier
+        // behavior, not a bug.
+        const API_URL = "https://fraud-detection-api-j3q4.onrender.com/predict";
+
         const sampleTransactions = [
             {
                 amount_usd: 150.0, merchant_category: "Electronics", card_type: "Visa",
@@ -225,9 +223,6 @@
         const checkBtn = document.getElementById("checkBtn");
         const resultPanel = document.getElementById("resultPanel");
 
-        // Clicking a card selects it (highlighted border) and enables
-        // the check button - the button stays disabled until a case
-        // is chosen, guiding the user through the flow in order.
         caseCards.forEach(card => {
             card.addEventListener("click", () => {
                 caseCards.forEach(c => c.classList.remove("selected"));
@@ -239,16 +234,14 @@
             });
         });
 
-        // When the button is clicked, send the selected sample
-        // transaction to the live API and display the result.
         checkBtn.addEventListener("click", async () => {
             if (selectedCase === null) return;
 
             checkBtn.disabled = true;
-            checkBtn.textContent = "Checking...";
+            checkBtn.textContent = "Checking... (may take up to 50s if waking from sleep)";
 
             try {
-                const response = await fetch("http://127.0.0.1:5000/predict", {
+                const response = await fetch(API_URL, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(sampleTransactions[selectedCase])
@@ -272,7 +265,7 @@
                 resultPanel.className = "result-panel fraud";
                 resultPanel.innerHTML = `
                     <div class="result-headline">Error</div>
-                    <div class="result-detail">${error.message}. Is the API server running?</div>
+                    <div class="result-detail">${error.message}. Please try again.</div>
                 `;
                 resultPanel.style.display = "block";
             }
