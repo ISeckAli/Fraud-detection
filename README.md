@@ -5,7 +5,7 @@ A machine learning system that detects fraudulent financial transactions, built 
 [![Tests](https://github.com/ISeckAli/Fraud-detection/actions/workflows/tests.yml/badge.svg)](https://github.com/ISeckAli/Fraud-detection/actions/workflows/tests.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**[Live Demo](https://fraud-detection-demo-u8l5.onrender.com)** · **[API Endpoint](https://fraud-detection-api-j3q4.onrender.com)**
+**[Live Demo](https://fraud-detection-demo-u8l5.onrender.com)** · **[API Endpoint](https://fraud-detection-api-j3q4.onrender.com)** · **[Model Card](MODEL_CARD.md)**
 
 > **Note:** the API and demo are hosted on Render's free tier, which spins down after periods of inactivity. The first request after idle time may take up to ~50 seconds while the server wakes up.
 
